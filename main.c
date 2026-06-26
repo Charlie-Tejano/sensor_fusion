@@ -9,6 +9,10 @@
 #include <stdint.h>
 #include <stdio.h>
 
+// STNDBY Mode, STM32F4xx to save power
+
+
+
 // Distance, duty mapping
 static uint8_t DIST_to_duty(float dist_cm)
 {

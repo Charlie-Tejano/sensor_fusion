@@ -64,10 +64,59 @@ static uint8_t lis3dsh_read(uint8_t reg)
     return data;
 }
 
-// Line 67, finally enable clocks for the LIS3DSH and SPI1
+// Initialize the LIS3DSH accelerometer
+void lis3dsh_init(void)
+{
+// Enable clocks for GPIOA and GPIOE
 RCC->AHB1ENR |= (1u << 0) | (1u << 4);
 RCC->APB2ENR |= (1u << 12); // SPI1 clock enable
 
 GPIOA->MODER &= ~((3u << (5*2)) | (3u << (6*2)) | (3u << (7*2))); // Clear PA5, PA6, PA7
 GPIOA->MODER |= ((2u << (5*2)) | (2u << (6*2)) | (2u << (7*2))); // Alternate function mode (10)
 
+GPIOA->OTYPER &= ~((1u << 5) | (1u << 6) | (1u << 7)); // Not open-drain
+GPIOA->PUPDR &= ~((3u << (5*2)) | (3u << (6*2)) | (3u << (7*2))); // No pull-up, no pull-down
+GPIOA->OSPEEDR |= ((3u << (5*2)) | (3u << (6*2)) | (3u << (7*2))); // High speed (11)
+
+GPIOA->AFR[0] &= ~((0xFu << (5u*4u)) | (0xFu << (6u*4u)) | (0xFu << (7u*4u))); // Clear AFRL for PA5, PA6, PA7
+GPIOA->AFR[0] |= ((5u << (5u*4u)) | (5u << (6u*4u)) | (5u << (7u*4u))); // AF5 for SPI1
+
+// Configure PE3 as output for Chip Select
+GPIOE->MODER &= ~(3u << (3u*2u));
+GPIOE->MODER |= (1u << (3u*2u)); // Output mode (01)
+GPIOE->OTYPER &= ~(1u << 3u); // Not open-drain
+GPIOE->PUPDR &= ~(3u << (3u*2u)); // No pull-up, no pull-down
+cs_high(); // Set CS high
+
+// Configure SPI1
+SPI1->CR1 = 0x0000u; // Clear CR1
+SPI1->CR1 |= (1u << 2) | (1u << 1) | (1u << 0); // Master mode, clock-idle high, 8-bit data
+SPI1->CR1 |= (1u << 9) | (1u << 8);
+
+/***
+ ** APB2 clock freq. = 84 MHz, SPI1 baud rate\n
+ * SPI1 baud rate = 84 MHz / 64 MHz = ~1.3125 MHz
+ */
+SPI1->CR1 |= (5u << 3); // Divisor/64 MHz
+SPI1->CR1 |= (1u << 6); // Serial peripheral enabled
+
+// Configure LIS3DSH
+lis3dsh_writeregister(CTRL_REG4, 0x67u); // 100 Hz, 6-bit data, normal mode
+lis3dsh_writeregister(CTRL_REG5, 0x00u);
+}
+// Read and register values of each axis
+void lis3dsh_read_dir(float *x_dir, float *y_dir, float *z_dir)
+{
+    int16_t raw_x = (int16_t)(lis3dsh_read(OUT_X_H) << 8 
+                            | lis3dsh_read(OUT_X_L)); // Read X-axis data
+
+    int16_t raw_y = (int16_t)(lis3dsh_read(OUT_Y_H) << 8 
+                            | lis3dsh_read(OUT_Y_L)); // Read Y-axis data
+
+    int16_t raw_z = (int16_t)(lis3dsh_read(OUT_Z_H) << 8 
+                            | lis3dsh_read(OUT_Z_L)); // Read Z-axis data
+
+    *x_dir = (float)raw_x*SPI_SENSITIVITY;
+    *y_dir = (float)raw_y*SPI_SENSITIVITY;
+    *z_dir = (float)raw_z*SPI_SENSITIVITY;
+}

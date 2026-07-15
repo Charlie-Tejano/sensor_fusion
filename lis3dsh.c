@@ -39,7 +39,7 @@ static void cs_high(void)
 static uint8_t spi1_transfer(uint8_t data)
 {
     while (!(SPI1->SR & (1u << 1))) {} // TXE transmit, wait until empty
-    SPI1->DR = out;
+    SPI1->DR = data;
 
     while (!(SPI1->SR & (1u << 0))) {} // Wait RXNE receive not empty
     return (uint8_t)SPI1->DR; // Distribute received data
@@ -50,10 +50,11 @@ static void lis3dsh_write(uint8_t reg, uint8_t data)
 {
     cs_low();
     spi1_transfer(reg & 0x7Fu); // Clear the R/W bit for write operation
-    spi1_transfer(value);
+    spi1_transfer(data);
     cs_high();
 }
 
+// Read a byte from the LIS3DSH register
 static uint8_t lis3dsh_read(uint8_t reg)
 {
     uint8_t data;
@@ -62,6 +63,11 @@ static uint8_t lis3dsh_read(uint8_t reg)
     data = spi1_transfer(0xFFu); // Send dummy byte to receive data
     cs_high();
     return data;
+}
+
+uint8_t lis3dsh_whoami(void)
+{
+    return lis3dsh_read(0x0Fu); // WHO_AM_I register address
 }
 
 // Initialize the LIS3DSH accelerometer
@@ -101,9 +107,10 @@ SPI1->CR1 |= (5u << 3); // Divisor/64 MHz
 SPI1->CR1 |= (1u << 6); // Serial peripheral enabled
 
 // Configure LIS3DSH
-lis3dsh_writeregister(CTRL_REG4, 0x67u); // 100 Hz, 6-bit data, normal mode
-lis3dsh_writeregister(CTRL_REG5, 0x00u);
+lis3dsh_write(CTRL_REG4, 0x67u); // 100 Hz, 6-bit data, normal mode
+lis3dsh_write(CTRL_REG5, 0x00u);
 }
+
 // Read and register values of each axis
 void lis3dsh_read_dir(float *x_dir, float *y_dir, float *z_dir)
 {

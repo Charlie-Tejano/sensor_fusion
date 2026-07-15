@@ -9,9 +9,7 @@
 #include <stdint.h>
 #include <stdio.h>
 
-// STNDBY Mode, STM32F4xx to save power
-
-
+#define SPI_DEBUG 1 // SPI debug flag, set to 1 to enable debug output
 
 // Distance, duty mapping
 static uint8_t DIST_to_duty(float dist_cm)
@@ -48,15 +46,39 @@ int main(void)
     LCD_init();
     MOTOR_Init();
 		ultrasonicInit();
-		LIS3DSH_Init();
 
+    // Debug mode for SPI communication with LIS3DSH
+    #if SPI_DEBUG
+    LCD_placeCursor(1);
+    LCD_printString("SPI Debug Mode...");
+
+    while(1) {
+        float x_dir, y_dir, z_dir;
+        char dbg[17];
+
+        lis3dsh_read_dir(&x_dir, &y_dir, &z_dir); // Read X, Y, Z axis data from LIS3DSH accelerometer
+        
+        snprintf(dbg, sizeof(dbg), "X%5.2f Y%5.2f", x_dir, y_dir); // Display X and Y axis data on LCD
+        LCD_placeCursor(2);
+        LCD_printString(dbg);
+        delay_ms(100); // Update every 100 ms
+    }
+    #endif
+
+    while(1) {
+        uint8_t id = lis3dsh_whoami(); // Read WHO_AM_I register from LIS3DSH
+        char dbg[17];
+
+        snprintf(dbg, sizeof(dbg), "WHO_AM_I: 0x%02X", id); // Display WHO_AM_I value on LCD
+        LCD_placeCursor(1);
+        LCD_printString(dbg);
+        delay_ms(100); // Update every 100 ms
+    }
+    
     MOTOR_Stop(); // Stop motor right away
-		
-		float x, y, z;
-		LIS3DSH_Read(&x, &y, &z); //
 
     LCD_placeCursor(1);
-    LCD_printString("LAB6 Ultrasonic ");
+    LCD_printString("Digital Sensor Fusion ");
     LCD_placeCursor(2);
     LCD_printString("Initializing... ");
     delay_ms(1000);

@@ -18,6 +18,9 @@
 // SPI1 Command, read and write
 #define SPI_READ  0x80u
 
+// Block Data Update bit in Control Register 4
+#define BDU_BIT (1u << 3)
+
 /***LIS3DSH Sensitivity for acceleration in g/LSB \n
  **conversion factor for 6-bit data, 0.06 mg/LSB = 0.00006 g/LSB
 */
@@ -103,11 +106,11 @@ SPI1->CR1 |= (1u << 9) | (1u << 8);
  ** APB2 clock freq. = 84 MHz, SPI1 baud rate\n
  * SPI1 baud rate = 84 MHz / 64 MHz = ~1.3125 MHz
  */
-SPI1->CR1 |= (5u << 3); // Divisor/64 MHz
-SPI1->CR1 |= (1u << 6); // Serial peripheral enabled
+SPI1->CR1 |= (5u << 3);
+SPI1->CR1 |= (1u << 6); // Serial Peripheral Enabled
 
 // Configure LIS3DSH
-lis3dsh_write(CTRL_REG4, 0x67u); // 100 Hz, 6-bit data, normal mode
+lis3dsh_write(CTRL_REG4, 0x67u | BDU_BIT); // Enable Block Data Update, 100 Hz data rate
 lis3dsh_write(CTRL_REG5, 0x00u);
 }
 

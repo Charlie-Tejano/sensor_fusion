@@ -31,7 +31,7 @@ typedef enum {
 
 tilt_detect_t lis3dsh_detect(void); // Detects tilt
 
-// impact and shake detection
+// impact detection, sudden collision
 typedef enum {
     impact_none = 0,
     impact_positive_x,

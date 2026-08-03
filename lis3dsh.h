@@ -21,30 +21,6 @@ typedef enum {
 // Returns the direction of the g-force detected from the accelerometer
 LIS3DSH_Direction lis3dsh_dir(void);
 
-// Tilt, impact, and shake detection
-typedef enum {
-    detect_none = 0,
-    detect_tilt,
-    detect_impact,
-    detect_shake
-} tilt_detect_t;
-
-tilt_detect_t lis3dsh_detect(void); // Detects tilt
-
-// impact detection
-typedef enum {
-    impact_none = 0,
-    impact_positive_x,
-    impact_negative_x,
-    impact_positive_y,
-    impact_negative_y,
-    impact_positive_z,
-    impact_negative_z
-} impact_detect_t;
-
-// Detects impact when shaken
-impact_detect_t lis3dsh_impact(void);
-
 // Prototypes
 void lis3dsh_init(void);
 void lis3dsh_read_dir(float *x_dir, float *y_dir, float *z_dir);

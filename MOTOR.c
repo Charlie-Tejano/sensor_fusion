@@ -1,8 +1,6 @@
 // MOTOR.c
-
-// Lab 5
-
 //Charlie Tejano
+
 #include "MOTOR.h"
 
 //module variables
@@ -31,7 +29,7 @@ void MOTOR_GPIO_Init(void) {
 
     //Enable GPIOD clock
     RCC->AHB1ENR |= RCC_AHB1ENR_GPIODEN;
-    (void)RCC->AHB1ENR;
+    (void)RCC->AHB1ENR; // Force bus to update
 
     // PD12 as general-purpose output
 

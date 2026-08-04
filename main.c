@@ -9,14 +9,10 @@
 #include <stdint.h>
 #include <stdio.h>
 
-#define SPI_DEBUG 1 // SPI debug flag, set to 1 to enable debug output
-
 // Distance, duty mapping
 static uint8_t DIST_to_duty(float dist_cm)
 {
-    if (dist_cm < 10.0f) { // Read more than 10 cm
-        return 20u;
-    }
+    // Measure distance and map to duty cycle
     if (dist_cm < 30.0f) {
         return 40u;
     }
@@ -45,43 +41,35 @@ int main(void)
     LCD_port_init();
     LCD_init();
     lis3dsh_init();
-
-    // Debug mode for SPI communication with LIS3DSH
-    #if SPI_DEBUG
-    LCD_placeCursor(1);
-    LCD_printString("SPI Debug Mode...");
-
-    #else
     MOTOR_Init();
     ultrasonicInit();
     MOTOR_Stop();
     MOTOR_SetDutyCycle(40u);
     MOTOR_Forward();
-    #endif
-
-    while(1) {
-    #if SPI_DEBUG
-        float x_dir, y_dir, z_dir;
-        char dbg[17];
-
-        lis3dsh_read_dir(&x_dir, &y_dir, &z_dir); // Read X, Y, Z axis data from LIS3DSH accelerometer
-        
-        snprintf(dbg, sizeof(dbg), "X%5.2f Y%5.2f", x_dir, y_dir); // Display X and Y axis data on LCD
-        LCD_placeCursor(2);
-        LCD_printString(dbg);
-        delay_ms(100); // Update every 100 ms
-        #else
     
+    while(1) {
+        // Read distance from ultrasonic sensor
         float dist_cm = ultrasonic_GetDistance_cm();
         if (dist_cm <= 0.0f) { // Less than 0 cm is not valid
             delay_ms(50);
             continue;
         }
+        // Emergency braking if distance is less than 10 cm
+        if (dist_cm < 10.0f) {
+            aeb_set_state(aeb_on);
+            LCD_placeCursor(1);
+            LCD_printString("AEB: Initiated  ");
+            LCD_placeCursor(2);
+            LCD_printString("DIST: <10cm   ");
+            continue;
+            }
+            // If distance is greater than 10 cm, resume forward motion
+            aeb_set_state(aeb_off);
 
+        // Map distance to duty cycle and update motor speed
         uint8_t duty = DIST_to_duty(dist_cm);
         MOTOR_SetDutyCycle(duty);
         LCD_showUltrasonic(dist_cm, duty);
         delay_ms(100);
-        #endif
     }
 }

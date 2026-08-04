@@ -1,6 +1,7 @@
 // ultrasonic.c
 
 #include "ultrasonic.h"
+#include "MOTOR.h"
 #include "stm32f4xx.h"
 #include <stdint.h>
 
@@ -106,3 +107,20 @@ void TIM3_IRQHandler(void)
         }
 }
 
+// AEB states
+void aeb_set_state(aeb_state state) {
+    if (state == aeb_on) {
+        // Enable AEB functionality
+        if (g_distance_cm < 10.0f) {
+            MOTOR_Stop();
+        } else {
+            MOTOR_Forward();
+        }
+    } else if (state == aeb_off) {
+        // Disable AEB functionality
+        MOTOR_Forward();
+    } else if (state == aeb_fault) {
+        // Handle fault state, e.g., stop the motor
+        MOTOR_Stop();
+    }
+}

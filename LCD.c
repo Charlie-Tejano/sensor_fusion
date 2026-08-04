@@ -271,12 +271,8 @@ void check_BF(){
         __NOP(); // small delay
         clear_PIN(EN);
 	}
-
-
     clear_PIN(RW);
 	GPIOD->MODER |= (1u<<(DB7*2));
-
-
   }
 //Print characters to LCD
 void LCD_printChar(char c) {
@@ -291,11 +287,9 @@ void LCD_printString(char text[]) {
         if (i == 16) {
             LCD_placeCursor(2);
         }
-
         if (i == 32) {
             break;
         }
-
         LCD_printChar(text[i]);
         i++;
     }

@@ -6,6 +6,7 @@
 #include "MOTOR.h"
 #include "ultrasonic.h"
 #include "lis3dsh.h"
+#include "RPG.h"
 #include <stdint.h>
 #include <stdio.h>
 
@@ -43,17 +44,30 @@ int main(void)
     lis3dsh_init();
     MOTOR_Init();
     ultrasonicInit();
+    rotary_Init();
     MOTOR_Stop();
     MOTOR_SetDutyCycle(40u);
     MOTOR_Forward();
     
     while(1) {
+        // Use e-stop flag to indicate a fault condition
+        if (g_estop_flag) {
+            aeb_set_state(aeb_fault);
+            LCD_placeCursor(1);
+            LCD_printString("AEB: Fault      ");
+            LCD_placeCursor(2);
+            LCD_printString("ESTOP...      ");
+            delay_ms(25);
+            continue;
+        }
+
         // Read distance from ultrasonic sensor
         float dist_cm = ultrasonic_GetDistance_cm();
         if (dist_cm <= 0.0f) { // Less than 0 cm is not valid
             delay_ms(50);
             continue;
         }
+        
         // Emergency braking if distance is less than 10 cm
         if (dist_cm < 10.0f) {
             aeb_set_state(aeb_on);
@@ -63,6 +77,7 @@ int main(void)
             LCD_printString("DIST: <10cm   ");
             continue;
             }
+
             // If distance is greater than 10 cm, resume forward motion
             aeb_set_state(aeb_off);
 
@@ -70,6 +85,6 @@ int main(void)
         uint8_t duty = DIST_to_duty(dist_cm);
         MOTOR_SetDutyCycle(duty);
         LCD_showUltrasonic(dist_cm, duty);
-        delay_ms(100);
+				delay_ms(25);
     }
 }

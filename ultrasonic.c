@@ -52,7 +52,7 @@ RCC->APB1ENR |= (1u << 1);
 TIM3->CR1 = 0x0000u; // Clear
 	
 TIM3->PSC = 159u;
-TIM3->ARR = 74999u;
+TIM3->ARR = 5999u;
 	
 TIM3->CCMR1 &= ~(0x00FFu);
 TIM3->CCMR1 |= (6u << 4);
@@ -121,6 +121,7 @@ void aeb_set_state(aeb_state state) {
         MOTOR_Forward();
     } else if (state == aeb_fault) {
         // Handle fault state, e.g., stop the motor
+        
         MOTOR_Stop();
     }
 }

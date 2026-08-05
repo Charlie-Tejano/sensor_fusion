@@ -1,5 +1,4 @@
 // RPG.h
-
 //Charlie Tejano
 #ifndef RPG_H
 #define RPG_H
@@ -18,11 +17,8 @@ extern volatile uint8_t g_estop_flag;
 */
 
 // OUTA->PB1
-
 // OUTB->PB0
-
 // SWITCH->PB15
-
 #define rotary_dir_none 0
 #define rotary_dir_cw 1
 #define rotary_dir_ccw -1

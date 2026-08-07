@@ -1,5 +1,4 @@
 // lis3dsh.h
-
 // Charlie Tejano
 #ifndef LIS3DSH_H
 #define LIS3DSH_H

@@ -76,29 +76,48 @@ uint8_t lis3dsh_whoami(void)
 // Initialize the LIS3DSH accelerometer
 void lis3dsh_init(void)
 {
-// Enable clocks for GPIOA and GPIOE
 RCC->AHB1ENR |= (1u << 0) | (1u << 4);
-RCC->APB2ENR |= (1u << 12); // SPI1 clock enable
+RCC->APB2ENR |= (1u << 12);
 
-GPIOA->MODER &= ~((3u << (5*2)) | (3u << (6*2)) | (3u << (7*2))); // Clear PA5, PA6, PA7
-GPIOA->MODER |= ((2u << (5*2)) | (2u << (6*2)) | (2u << (7*2))); // Alternate function mode (10)
+GPIOA->MODER &= ~((3u << (5*2)) 
+                | (3u << (6*2)) 
+                | (3u << (7*2)));
 
-GPIOA->OTYPER &= ~((1u << 5) | (1u << 6) | (1u << 7)); // Not open-drain
-GPIOA->PUPDR &= ~((3u << (5*2)) | (3u << (6*2)) | (3u << (7*2))); // No pull-up, no pull-down
-GPIOA->OSPEEDR |= ((3u << (5*2)) | (3u << (6*2)) | (3u << (7*2))); // High speed (11)
+GPIOA->MODER |= ((2u << (5*2)) 
+                | (2u << (6*2)) 
+                | (2u << (7*2))); // Alternate function mode (10)
 
-GPIOA->AFR[0] &= ~((0xFu << (5u*4u)) | (0xFu << (6u*4u)) | (0xFu << (7u*4u))); // Clear AFRL for PA5, PA6, PA7
-GPIOA->AFR[0] |= ((5u << (5u*4u)) | (5u << (6u*4u)) | (5u << (7u*4u))); // AF5 for SPI1
+GPIOA->OTYPER &= ~((1u << 5) 
+                | (1u << 6) 
+                | (1u << 7)); // Set to push-pull (00)
 
-// Configure PE3 as output for Chip Select
+GPIOA->PUPDR &= ~((3u << (5*2)) 
+                | (3u << (6*2)) 
+                | (3u << (7*2))); // No pull-up, no pull-down
+
+GPIOA->OSPEEDR |= ((3u << (5*2)) 
+                | (3u << (6*2)) 
+                | (3u << (7*2))); // High speed (11)
+
+GPIOA->AFR[0] &= ~((0xFu << (5u*4u)) 
+                | (0xFu << (6u*4u)) 
+                | (0xFu << (7u*4u))); // Clear AFRL for PA5, PA6, PA7
+
+GPIOA->AFR[0] |= ((5u << (5u*4u)) 
+                | (5u << (6u*4u)) 
+                | (5u << (7u*4u))); // AF5 for SPI1
+
+// Config. PE3 for Chip Select (CS) pin
 GPIOE->MODER &= ~(3u << (3u*2u));
 GPIOE->MODER |= (1u << (3u*2u)); // Output mode (01)
+
 GPIOE->OTYPER &= ~(1u << 3u); // Not open-drain
+
 GPIOE->PUPDR &= ~(3u << (3u*2u)); // No pull-up, no pull-down
 cs_high(); // Set CS high
 
 // Configure SPI1
-SPI1->CR1 = 0x0000u; // Clear CR1
+SPI1->CR1 = 0x0000u;
 SPI1->CR1 |= (1u << 2) | (1u << 1) | (1u << 0); // Master mode, clock-idle high, 8-bit data
 SPI1->CR1 |= (1u << 9) | (1u << 8);
 
@@ -107,7 +126,7 @@ SPI1->CR1 |= (1u << 9) | (1u << 8);
  * SPI1 baud rate = 84 MHz / 64 MHz = ~1.3125 MHz
  */
 SPI1->CR1 |= (5u << 3);
-SPI1->CR1 |= (1u << 6); // Serial Peripheral Enabled
+SPI1->CR1 |= (1u << 6); // Enable SPI1
 
 // Configure LIS3DSH
 lis3dsh_write(CTRL_REG4, 0x67u | BDU_BIT); // Enable Block Data Update, 100 Hz data rate
@@ -130,3 +149,8 @@ void lis3dsh_read_dir(float *x_dir, float *y_dir, float *z_dir)
     *y_dir = (float)raw_y*SPI_SENSITIVITY;
     *z_dir = (float)raw_z*SPI_SENSITIVITY;
 }
+/***
+ * SPI Waveform Data (Salae Logic Analyzer):
+ * 
+ * 
+ */

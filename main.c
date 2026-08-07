@@ -2,6 +2,7 @@
 
 // Charlie Tejano
 #include "LCD.h"
+#include "pcf8574.h"
 #include "stm32f4xx.h"
 #include "MOTOR.h"
 #include "ultrasonic.h"
@@ -41,6 +42,7 @@ int main(void)
 {
     LCD_port_init();
     LCD_init();
+    pcf8574_init();
     lis3dsh_init();
     MOTOR_Init();
     ultrasonicInit();
@@ -61,6 +63,11 @@ int main(void)
             continue;
         }
 
+        pcf8574_placeCursor(1);
+        pcf8574_writeString("Traction Control  ");
+        pcf8574_placeCursor(2);
+        pcf8574_writeString("Active            ");
+        
         // Read distance from ultrasonic sensor
         float dist_cm = ultrasonic_GetDistance_cm();
         if (dist_cm <= 0.0f) { // Less than 0 cm is not valid

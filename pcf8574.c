@@ -6,31 +6,35 @@
 
 #define I2C_TIMEOUT 20000u // 20,000 cycles timeout for I2C operations
 
+// I2C1 pin definitions
+#define I2C1_SCL 8u
+#define I2C1_SDA 9u
+
 // Initialize general purpose I/O expander PCF8574
 static void i2c1_init(void)
 {
     RCC->AHB1ENR |= (1u << 1);
     RCC->APB1ENR |= (1u << 21);
 
-    // PB7 & PB8 in alternate-function mode (10)
-    GPIOB->MODER &= ~((3u << (7u*2u)) | (3u << (8u*2u)));
-    GPIOB->MODER |=  ((2u << (7u*2u)) | (2u << (8u*2u)));
+    // PB8 & PB9 in alternate-function mode (10)
+    GPIOB->MODER &= ~((3u << (8u*2u)) | (3u << (9u*2u)));
+    GPIOB->MODER |=  ((2u << (8u*2u)) | (2u << (9u*2u)));
 
     // Open-drain (01); required for I2C
-    GPIOB->OTYPER |= ((1u << 7u) | (1u << 8u));
+    GPIOB->OTYPER |= ((1u << 8u) | (1u << 9u));
 
     // Pull-up (01)
-    GPIOB->PUPDR &= ~((3u << (7u*2u)) | (3u << (8u*2u)));
-    GPIOB->PUPDR |= ((1u << (7u*2u)) | (1u << (8u*2u)));
+    GPIOB->PUPDR &= ~((3u << (8u*2u)) | (3u << (9u*2u)));
+    GPIOB->PUPDR |= ((1u << (8u*2u)) | (1u << (9u*2u)));
 
     // High speed (11)
-    GPIOB->OSPEEDR |= ((3u << (7u*2u)) | (3u << (8u*2u)));
+    GPIOB->OSPEEDR |= ((3u << (8u*2u)) | (3u << (9u*2u)));
 
     // AF4 = I2C1. PB7 sits in AFRL, PB8 in AFRH
-    GPIOB->AFR[0] &= ~(0xFu << (7u*4u));
-    GPIOB->AFR[0] |= (0x4u << (7u*4u));
     GPIOB->AFR[1] &= ~(0xFu << ((8u-8u)*4u));
     GPIOB->AFR[1] |= (0x4u << ((8u-8u)*4u));
+    GPIOB->AFR[1] &= ~(0xFu << ((9u-8u)*4u));
+    GPIOB->AFR[1] |= (0x4u << ((9u-8u)*4u));
 
     I2C1->CR1 |= (1u << 15); // If BUSY flag is set and glitch on the I2C bus, reset the I2C peripheral
     I2C1->CR1 &= ~(1u << 15);

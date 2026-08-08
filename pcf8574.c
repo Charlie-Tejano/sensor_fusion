@@ -17,24 +17,30 @@ static void i2c1_init(void)
     RCC->APB1ENR |= (1u << 21);
 
     // PB8 & PB9 in alternate-function mode (10)
-    GPIOB->MODER &= ~((3u << (8u*2u)) | (3u << (9u*2u)));
-    GPIOB->MODER |=  ((2u << (8u*2u)) | (2u << (9u*2u)));
+    GPIOB->MODER &= ~((3u << (I2C1_SCL*2u)) 
+                    | (3u << (I2C1_SDA*2u)));
+
+    GPIOB->MODER |=  ((2u << (I2C1_SCL*2u)) 
+                    | (2u << (I2C1_SDA*2u)));
 
     // Open-drain (01); required for I2C
-    GPIOB->OTYPER |= ((1u << 8u) | (1u << 9u));
+    GPIOB->OTYPER |= ((1u << I2C1_SCL) 
+                    | (1u << I2C1_SDA));
 
-    // Pull-up (01)
-    GPIOB->PUPDR &= ~((3u << (8u*2u)) | (3u << (9u*2u)));
-    GPIOB->PUPDR |= ((1u << (8u*2u)) | (1u << (9u*2u)));
+    // External pull-up resistors are used, so no internal pull-ups (00)
+    GPIOB->PUPDR &= ~((3u << (I2C1_SCL*2u)) 
+                    | (3u << (I2C1_SDA*2u)));
 
     // High speed (11)
-    GPIOB->OSPEEDR |= ((3u << (8u*2u)) | (3u << (9u*2u)));
+    GPIOB->OSPEEDR |= ((3u << (I2C1_SCL*2u)) 
+                     | (3u << (I2C1_SDA*2u)));
 
     // AF4 = I2C1. PB7 sits in AFRL, PB8 in AFRH
-    GPIOB->AFR[1] &= ~(0xFu << ((8u-8u)*4u));
-    GPIOB->AFR[1] |= (0x4u << ((8u-8u)*4u));
-    GPIOB->AFR[1] &= ~(0xFu << ((9u-8u)*4u));
-    GPIOB->AFR[1] |= (0x4u << ((9u-8u)*4u));
+    GPIOB->AFR[1] &= ~((0xFu << ((I2C1_SCL-8u)*4u)) | 
+                     (0xFu << ((I2C1_SDA-8u)*4u)));
+    
+    GPIOB->AFR[1] |= (0x4u << ((I2C1_SCL-8u)*4u)) | 
+                     (0x4u << ((I2C1_SDA-8u)*4u));
 
     I2C1->CR1 |= (1u << 15); // If BUSY flag is set and glitch on the I2C bus, reset the I2C peripheral
     I2C1->CR1 &= ~(1u << 15);
@@ -92,7 +98,6 @@ void pcf8574_write(uint8_t data)
             return;
         }
     }
-
     (void)I2C1->SR1; // Clear ADDR flag by reading SR1 and SR2
     (void)I2C1->SR2;
 
@@ -106,21 +111,54 @@ void pcf8574_write(uint8_t data)
     I2C1->DR = data; // Send data byte
 
     timeout = I2C_TIMEOUT;
-    while (!(I2C1->SR1 & (1u << 7))) { // Wait for BTF or Byte Transfer Finished
-        if (--timeout == 0u) {
-            i2c1_stop();
-            return;
-        }
-    }
-    I2C1->DR = data; // Send data byte again to ensure it's sent
-
-    timeout = I2C_TIMEOUT;
     while (!(I2C1->SR1 & (1u << 2))) { // BTF flag set
         if (--timeout == 0u) {
             break;
         }
         i2c1_stop();
     }
+}
+
+// Walk through the bus and return the first 7-bit address that acknowledges the request. Returns 0 if no device is found.
+uint8_t i2c1_scan(void)
+{
+    for (uint8_t addr = 1u; addr < 128u; addr++) {
+        uint32_t timeout = I2C_TIMEOUT;
+        while (I2C1->SR2 & (1u << 1)) { // BUSY flag
+            if (--timeout == 0u) {
+                return 0u;
+            }
+        }
+
+        I2C1->CR1 |= (1u << 8); // START
+        timeout = I2C_TIMEOUT;
+        while (!(I2C1->SR1 & (1u << 0))) { // Start-bit sent
+            if (--timeout == 0u) {
+                return 0u;
+            }
+        }
+
+        I2C1->DR = (uint8_t)(addr << 1); // Send address with write bit (0)
+        timeout = I2C_TIMEOUT;
+        while (1) {
+            if (I2C1->SR1 & (1u << 1)) { // Address sent and acknowledged
+                (void)I2C1->SR1;
+                (void)I2C1->SR2;
+                i2c1_stop();
+                return addr;
+            }
+            if (I2C1->SR1 & (1u << 10)) {
+                I2C1->SR1 &= ~(1u << 10); // Clear NACK flag
+                i2c1_stop();
+                break; // Move to the next address
+            }
+            if (--timeout == 0u) {
+                i2c1_stop();
+                return 0u;
+            }
+        }
+    }
+    return 0u;
 }
 
 // Strobe a nibble out to P4-P7 with EN high, then low
@@ -158,7 +196,7 @@ void pcf8574_clearDisplay(void)
 void pcf8574_init(void)
 {
     i2c1_init();
-    delay_ms(50); // Power-on reset delay
+    delay_ms(50);
 
     // Initialize 8-bit mode three times ensuring synchronization
     pcf8574_strobe(0x03u, 0u);
